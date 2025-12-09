@@ -1,7 +1,6 @@
 {
   "name": "sftp-proxy-server",
   "version": "1.0.0",
-  "description": "Serveur proxy SFTP pour ETL assurance",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,8 +9,7 @@
     "express": "^4.18.2",
     "ssh2-sftp-client": "^10.0.3",
     "cors": "^2.8.5",
-    "adm-zip": "^0.5.10",
-    "node-7z": "^3.0.0"
+    "adm-zip": "^0.5.10"
   },
   "engines": {
     "node": ">=18.0.0"

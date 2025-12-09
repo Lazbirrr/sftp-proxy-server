@@ -6,6 +6,21 @@ const AdmZip = require("adm-zip");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ============================================
+// DÉMARRER LE SERVEUR EN PREMIER
+// ============================================
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log("=".repeat(60));
+  console.log("🚀 SERVEUR SFTP PROXY DEMARRE");
+  console.log("📡 Port: " + PORT);
+  console.log("🌍 Environnement: " + (process.env.NODE_ENV || "development"));
+  console.log("🕐 Time: " + new Date().toLocaleString("fr-FR"));
+  console.log("=".repeat(60));
+});
+
+// ============================================
+// MIDDLEWARE
+// ============================================
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
@@ -14,10 +29,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// ============================================
+// ROUTES
+// ============================================
 app.get("/", (req, res) => {
   res.json({
+    status: "ok",
     message: "Serveur SFTP Proxy operationnel",
     version: "1.0.0",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
     endpoints: {
       health: "GET /health",
       testConnection: "POST /sftp/test-connection",
@@ -72,6 +93,7 @@ app.post("/sftp/test-connection", async (req, res) => {
     });
   } catch (error) {
     console.error("[TEST] Erreur de connexion:", error.message);
+    await sftp.end().catch(() => {});
     res.status(500).json({
       success: false,
       error: error.message,
@@ -129,6 +151,7 @@ app.post("/sftp/list-folders", async (req, res) => {
     });
   } catch (error) {
     console.error("[FOLDERS] Erreur:", error.message);
+    await sftp.end().catch(() => {});
     res.status(500).json({
       success: false,
       error: error.message,
@@ -205,6 +228,7 @@ app.post("/sftp/list", async (req, res) => {
     });
   } catch (error) {
     console.error("[LIST] Erreur:", error.message);
+    await sftp.end().catch(() => {});
     res.status(500).json({
       success: false,
       error: error.message,
@@ -297,6 +321,7 @@ app.post("/sftp/download", async (req, res) => {
     });
   } catch (error) {
     console.error("[DOWNLOAD] Erreur:", error.message);
+    await sftp.end().catch(() => {});
     res.status(500).json({
       success: false,
       error: error.message,
@@ -304,6 +329,9 @@ app.post("/sftp/download", async (req, res) => {
   }
 });
 
+// ============================================
+// ERROR HANDLERS
+// ============================================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -328,9 +356,21 @@ app.use((error, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log("SERVEUR SFTP PROXY DEMARRE");
-  console.log("Port: " + PORT);
-  console.log("Environnement: " + (process.env.NODE_ENV || "development"));
-  console.log("Time: " + new Date().toLocaleString("fr-FR"));
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, closing server...");
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  console.log("SIGINT received, closing server...");
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
 });
